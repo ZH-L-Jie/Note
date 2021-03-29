@@ -1,5 +1,6 @@
+# 从应用到底层 36张图带你进入Redis世界
 
-![img](https://upload-images.jianshu.io/upload_images/24781613-5afaa9023f87bf2a?imageMogr2/auto-orient/strip|imageView2/2/w/423/format/webp)
+[![img](https://upload.jianshu.io/users/upload_avatars/24781613/971b421b-93f4-4cbd-bc90-d38810b151a1.png?imageMogr2/auto-orient/strip|imageView2/1/w/80/h/80/format/webp)程序员木子](https://www.jianshu.com/u/b7583394701a)已关注赞赏支持![img](https://upload-images.jianshu.io/upload_images/24781613-5afaa9023f87bf2a?imageMogr2/auto-orient/strip|imageView2/2/w/423/format/webp)
 
 ==总感觉哪里不对，但是又说不上来==
 
