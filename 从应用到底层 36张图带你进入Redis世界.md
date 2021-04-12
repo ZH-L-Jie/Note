@@ -1,22 +1,22 @@
-# 从应用到底层 36张图带你进入Redis世界
-
-[![img](https://upload.jianshu.io/users/upload_avatars/24781613/971b421b-93f4-4cbd-bc90-d38810b151a1.png?imageMogr2/auto-orient/strip|imageView2/1/w/80/h/80/format/webp)程序员木子](https://www.jianshu.com/u/b7583394701a)已关注赞赏支持![img](https://upload-images.jianshu.io/upload_images/24781613-5afaa9023f87bf2a?imageMogr2/auto-orient/strip|imageView2/2/w/423/format/webp)
+# 从应用到底层 36张图带你进入Redis世界![img](%E4%BB%8E%E5%BA%94%E7%94%A8%E5%88%B0%E5%BA%95%E5%B1%82%2036%E5%BC%A0%E5%9B%BE%E5%B8%A6%E4%BD%A0%E8%BF%9B%E5%85%A5Redis%E4%B8%96%E7%95%8C.assets/24781613-5afaa9023f87bf2a)
 
 ==总感觉哪里不对，但是又说不上来==
 
+
+
 ## 1、基本类型及底层实现
 
-![img](https://upload-images.jianshu.io/upload_images/24781613-5b96799c2826263b?imageMogr2/auto-orient/strip|imageView2/2/w/860/format/webp)
+![img](%E4%BB%8E%E5%BA%94%E7%94%A8%E5%88%B0%E5%BA%95%E5%B1%82%2036%E5%BC%A0%E5%9B%BE%E5%B8%A6%E4%BD%A0%E8%BF%9B%E5%85%A5Redis%E4%B8%96%E7%95%8C.assets/24781613-5b96799c2826263b)
 
 ### 1.1、*String*
 
 用途：
 
-适用于简单key-value存储、setnx key value实现分布式锁、计数器(原子性)、分布式全局唯一ID。
+适用于简单key-value存储、==setnx key value==实现分布式锁、计数器(原子性)、分布式全局唯一ID。
 
 **底层**：C语言中String用*char[]数组表示*
 
-，源码中用SDS(simple dynamic string)封装char[]，这是是Redis存储的最小单元，一个SDS最大可以存储*512M*信息。
+，源码中用SDS(simple dynamic string)封装==char[]==，这是是Redis存储的最小单元，一个SDS最大可以存储*512M*信息。
 
 
 
@@ -44,13 +44,21 @@ SDS修改后大小 > 1M时 系统会多分配空间来进行空间预分配。
 
 SDS是惰性释放空间的，你free了空间，可是系统把数据记录下来下次想用时候可直接使用。不用新申请空间。
 
+```shell
+set key value
+get key
+del key
+```
+
+
+
 ### 1.2、*List*
 
 
 
 
 
-查看源码底层 adlist.h 会发现底层就是个 ***双端链表\***
+查看源码底层 adlist.h 会发现底层就是个 ***==双端链表\***==
 
 ，该链表最大长度为2^32-1。常用就这几个组合。
 
@@ -67,6 +75,15 @@ lpush + ltrim = capped collection 有限集合
 lpush + brpop = message queue 消息队列
 
 一般可以用来做简单的消息队列，并且当数据量小的时候可能用到独有的压缩列表来提升性能。当然专业点还是要 RabbitMQ、ActiveMQ等
+
+```shell
+	LPUSH key value1 [value2]
+	LRANGE key start stop
+	LREM key count value
+	LPOP key
+```
+
+
 
 ### 1.3、*Hash*
 
@@ -150,6 +167,18 @@ rehashidx = -1说明当前没有扩容，rehashidx != -1则表示扩容到数组
 
 ![img](https:////upload-images.jianshu.io/upload_images/24781613-66d12e8abdf0e725?imageMogr2/auto-orient/strip|imageView2/2/w/1080/format/webp)
 
+```shell
+HEXISTS key field
+HDEL key field1 [field2]
+HGET key field
+HGETALL key
+HKEYS key
+HSET key field value 
+HVALS key
+```
+
+
+
 ### 1.4、*Set*
 
 
@@ -174,7 +203,14 @@ rehashidx = -1说明当前没有扩容，rehashidx != -1则表示扩容到数组
 >
 > }
 
-....
+```shell
+SADD key member1 [member2]
+SPOP key
+SDIFF key1 [key2]
+SINTER key1 [key2]
+```
+
+
 
 ### 1.5、*ZSet*
 
@@ -203,6 +239,13 @@ rehashidx = -1说明当前没有扩容，rehashidx != -1则表示扩容到数组
 ![img](https:////upload-images.jianshu.io/upload_images/24781613-0bef0e1f71d811a2?imageMogr2/auto-orient/strip|imageView2/2/w/1080/format/webp)
 
 积分排行榜、时间排序新闻、延时队列。
+
+```shell
+ZADD key score1 member1 [score2 member2]
+ZRANGE key start stop [WITHSCORES]
+```
+
+
 
 ### 1.6、*Redis Geo*
 
@@ -246,7 +289,7 @@ key = 年份：用户id  offset = （今天是一年中的第几天） % （今�
 
 ### 1.9、Bloom Filter
 
-使用布隆过滤器得到的判断结果：不存在的一定不存在，存在的不一定存在。
+使用布隆过滤器得到的判断结果：==不存在的一定不存在，存在的不一定存在==。
 
 布隆过滤器 原理：
 
@@ -278,7 +321,7 @@ RDB 持久化机制，是对 Redis 中的数据执行周期性的持久化。更
 
 1、RDB是**周期间隔性的快照文件**，数据的完整性和一致性不高，因为RDB可能在最后一次备份时宕机了。
 
-2、备份时占用内存，因为Redis 在备份时会独立fork一个**子进程**，将数据写入到一个临时文件（此时内存中的数据是原来的两倍哦），最后再将临时文件替换之前的备份文件。所以要考虑到大概两倍的数据膨胀性。
+2、备份时占用内存，因为==Redis 在备份时会独立fork一个**子进程**，将数据写入到一个临时文件==（此时内存中的数据是原来的两倍哦），最后再将临时文件替换之前的备份文件。所以要考虑到大概两倍的数据膨胀性。
 
 注意手动触发及COW：
 
@@ -292,7 +335,7 @@ RDB 持久化机制，是对 Redis 中的数据执行周期性的持久化。更
 
 ### 2.2、AOF
 
-AOF 机制对每条写入命令作为日志，以 append-only 的模式写入一个日志文件中，因为这个模式是**只追加**的方式，所以没有任何磁盘寻址的开销，所以很快，有点像 Mysql 中的binlog。AOF更适合做热备。
+AOF 机制对==每条写入命令作为日志==，以 append-only 的模式写入一个日志文件中，因为这个模式是**只追加**的方式，所以没有任何磁盘寻址的开销，所以很快，有点像 Mysql 中的binlog。AOF更适合做热备。
 
 优点：
 
@@ -306,7 +349,7 @@ AOF是一秒一次去通过一个后台的线程fsync操作，数据丢失不用
 
 **AOF整个流程分两步**：第一步是命令的实时写入，不同级别可能有1秒数据损失。命令先追加到aof_buf然后再同步到AO磁盘，**如果实时写入磁盘会带来非常高的磁盘IO，影响整体性能**。
 
-第二步是对aof文件的**重写**，目的是为了减少AOF文件的大小，可以自动触发或者手动触发(**BGREWRITEAOF**)，是Fork出子进程操作，期间Redis服务仍可用。
+第二步是对aof文件的**重写**，目的是为了减少AOF文件的大小，可以自动触发或者手动触发(==**BGREWRITEAOF**==)，是Fork出子进程操作，期间Redis服务仍可用。
 
 ![img](https:////upload-images.jianshu.io/upload_images/24781613-5de3591ddb747036?imageMogr2/auto-orient/strip|imageView2/2/w/693/format/webp)
 
@@ -314,9 +357,9 @@ AOF是一秒一次去通过一个后台的线程fsync操作，数据丢失不用
 
 2、为了把重写期间响应的写入信息也写入到新的文件中，因此也会为子进程保留一个buf，防止新写的file丢失数据。
 
-3、重写是直接把当前内存的数据生成对应命令，并不需要读取老的AOF文件进行分析、命令合并。
+3、重写是直接==把当前内存的数据生成对应命令，并不需要读取老的AOF文件进行分析、命令合并==。
 
-4、**无论是 RDB 还是 AOF 都是先写入一个临时文件，然后通过****rename完成文件的替换工作**。
+4、**无论是 RDB 还是 AOF 都是先写入一个临时文件，然后通过**==rename完成文件的替换工作== 。
 
 关于Fork的建议：
 
@@ -332,7 +375,7 @@ AOF是一秒一次去通过一个后台的线程fsync操作，数据丢失不用
 
 ### 2.3、恢复
 
-启动时会先检查AOF(数据更完整)文件是否存在，如果不存在就尝试加载RDB。
+启动时会先检查==AOF(数据更完整)文件是否存在，如果不存在就尝试加载RDB。==
 
 ![img](https:////upload-images.jianshu.io/upload_images/24781613-ccff684ac45147b2?imageMogr2/auto-orient/strip|imageView2/2/w/272/format/webp)
 
@@ -390,7 +433,7 @@ Redis 6.0 版本 默认多线程是关闭的 io-threads-do-reads no
 
 Redis 6.0 版本 开启多线程后 线程数也要 谨慎设置。
 
-多线程可以使得性能翻倍，但是多线程只是用来处理网络数据的读写和协议解析，**执行命令仍然是单线程顺序执行**。
+==多线程可以使得性能翻倍，但是多线程只是用来处理网络数据的读写和协议解析，**执行命令仍然是单线程顺序执行**==。
 
 ## 4、常见问题
 
@@ -436,7 +479,7 @@ Redis中大批量key在同一时间同时失效导致所有请求都打到了MyS
 
 击穿解决：
 
-设置热点数据永远不过期 加上互斥锁也能搞定了
+设置==热点数据永远不过期 加上互斥锁==也能搞定了
 
 ### 4.4、双写一致性
 
@@ -490,19 +533,19 @@ MySQL 中的事务还是挺多道道的还要，而在Redis中的事务只要有
 
 1、redis事务就是一次性、顺序性、排他性的执行一个队列中的**一系列命令**。
 
-2、Redis事务**没有隔离级别**的概念：批量操作在发送 EXEC 命令前被放入队列缓存，并不会被实际执行，也就**不存在事务内的查询要看到事务里的更新，事务外查询不能看到**。
+2、Redis事务**没有隔离级别**的概念：批量操作在发送 ==EXEC 命令==前被放入队列缓存，并不会被实际执行，也就**不存在事务内的查询要看到事务里的更新，事务外查询不能看到**。
 
 3、Redis**不保证原子性**：Redis中单条命令是原子性执行的，但事务不保证原子性。
 
 4、Redis编译型错误事务中所有代码均不执行，指令使用错误。运行时异常是错误命令导致异常，其他命令可正常执行。
 
-5、watch指令类似于**乐观锁**，在事务提交时，如果watch监控的多个KEY中任何KEY的值已经被其他客户端更改，则使用EXEC执行事务时，事务队列将不会被执行。
+5、==watch指令类似于**乐观锁**==，在事务提交时，如果watch监控的多个KEY中任何KEY的值已经被其他客户端更改，则使用EXEC执行事务时，事务队列将不会被执行。
 
 ### 4.7、正确开发步骤
 
-上线前：Redis **高可用**，主从+哨兵，Redis cluster，避免全盘崩溃。
+==上线前==：Redis **高可用**，主从+哨兵，Redis cluster，避免全盘崩溃。
 
-上线时：本地 ehcache 缓存 + Hystrix 限流 + 降级，避免MySQL扛不住。上线后：Redis **持久化**采用 RDB + AOF 来保证断点后自动从磁盘上加载数据，快速恢复缓存数据。
+==上线时==：本地 ehcache 缓存 + Hystrix 限流 + 降级，避免MySQL扛不住。==上线后==：Redis **持久化**采用 RDB + AOF 来保证断点后自动从磁盘上加载数据，快速恢复缓存数据。
 
 ## 5、分布式锁
 
@@ -512,7 +555,13 @@ MySQL 中的事务还是挺多道道的还要，而在Redis中的事务只要有
 
 你需要知道一点基本zookeeper知识：
 
-1、持久节点：客户端断开连接zk不删除persistent类型节点 2、临时节点：客户端断开连接zk删除ephemeral类型节点 3、顺序节点：节点后面会自动生成类似0000001的数字表示顺序 4、节点变化的通知：客户端注册了监听节点变化的时候，会**调用回调方法**
+1、持久节点：客户端断开连接zk不删除persistent类型节点 
+
+2、临时节点：客户端断开连接zk删除ephemeral类型节点 
+
+3、顺序节点：节点后面会自动生成类似0000001的数字表示顺序 
+
+4、节点变化的通知：客户端注册了监听节点变化的时候，会**调用回调方法**
 
 大致流程如下，其中注意每个节点只监控它前面那个节点状态，从而避免羊群效应。关于模板代码百度即可。
 
@@ -576,9 +625,9 @@ Redis中 过期策略 通常有以下三种：
 
 每隔一定的时间，会扫描一定数量的数据库的expires字典中一定数量的key，并清除其中已过期的key。该策略是前两者的一个折中方案。通过调整定时扫描的时间间隔和每次扫描的限定耗时，可以在不同情况下使得CPU和内存资源**达到最优**的平衡效果。
 
-expires字典会保存所有设置了过期时间的key的过期时间数据，其中 key 是指向键空间中的某个键的指针，value是该键的毫秒精度的UNIX时间戳表示的过期时间。键空间是指该Redis集群中保存的所有键。
+==expires字典==会保存所有设置了过期时间的key的过期时间数据，其中 key 是指向键空间中的某个键的指针，value是该键的毫秒精度的UNIX时间戳表示的过期时间。键空间是指该Redis集群中保存的所有键。
 
-Redis采用的过期策略：惰性删除 + 定期删除。memcached采用的过期策略：惰性删除。
+Redis采用的过期策略：==惰性删除 + 定期删除==。memcached采用的过期策略：惰性删除。
 
 ### 6.2、6种内存淘汰策略
 
@@ -592,10 +641,13 @@ Redis的内存淘汰策略是指在Redis的用于缓存的内存不足时，怎�
 
 4、allkeys-lru：从数据集（server.db[i].dict）中挑选**最近最少使用**的数据淘汰
 
-5、allkeys-random：从数据集（server.db[i].dict）中**任意选择数**据淘汰 6、no-enviction（驱逐）：禁止驱逐数据，**不删除**的意思。
+5、allkeys-random：从数据集（server.db[i].dict）中**任意选择数**据淘汰 
+
+6、no-enviction（驱逐）：禁止驱逐数据，**不删除**的意思。
 
 面试常问常考的也就是**LRU**了，大家熟悉的LinkedHashMap中也实现了LRU算法的，实现如下：
 
+```java
 > classSelfLRUCacheextendsLinkedHashMap{
 >
 > privatefinalintCACHE_SIZE;
@@ -629,6 +681,7 @@ Redis的内存淘汰策略是指在Redis的用于缓存的内存不足时，怎�
 > }
 >
 > }
+```
 
 ### 6.2、总结
 
@@ -658,9 +711,9 @@ Redis全量复制一般发生在**Slave初始化阶段**，这时Slave需要将M
 
 ![img](https:////upload-images.jianshu.io/upload_images/24781613-1753efb3ca07d9a7?imageMogr2/auto-orient/strip|imageView2/2/w/443/format/webp)
 
-1、slave连接master，发送psync命令。
+1、slave连接master，发送==psync命令==。
 
-2、master接收到psync命名后，开始执行bgsave命令生成RDB文件并使用缓冲区记录此后执行的所有写命令。
+2、master接收到psync命名后，开始执行==bgsave命令==生成RDB文件并使用缓冲区记录此后执行的所有写命令。
 
 3、master发送快照文件到slave，并在发送期间继续记录被执行的写命令。4、slave收到快照文件后丢弃所有旧数据，载入收到的快照。
 
@@ -672,15 +725,15 @@ Redis全量复制一般发生在**Slave初始化阶段**，这时Slave需要将M
 
 也叫**指令同步**，就是从库重放在主库中进行的指令。Redis会把指令存放在一个**环形队列**当中，因为内存容量有限，如果备机一直起不来，不可能把所有的内存都去存指令，也就是说，如果备机一直未同步，指令可能会被覆盖掉。
 
-Redis增量复制是指Slave初始化后开始正常工作时master发生的写操作同步到slave的过程。增量复制的过程主要是master每执行一个写命令就会向slave发送相同的写命令。
+Redis增量复制是指Slave初始化后开始正常工作时master发生的写操作同步到slave的过程。==增量复制的过程主要是master每执行一个写命令就会向slave发送相同的写命令。==
 
 ![img](https:////upload-images.jianshu.io/upload_images/24781613-fa7e4f6dd0425e20?imageMogr2/auto-orient/strip|imageView2/2/w/295/format/webp)
 
 #### 7.1.3、Redis主从同步策略：
 
-1、主从刚刚连接的时候，进行全量同步；全同步结束后，进行增量同步。当然，如果有需要，slave 在任何时候都可以发起全量同步。redis 策略是，无论如何，首先会尝试进行增量同步，如不成功，要求从机进行全量同步。2、slave在同步master数据时候如果slave丢失连接不用怕，slave在重新连接之后丢失重补。
+1、主从刚刚连接的时候，==进行全量同步；全同步结束后，进行增量同步==。当然，如果有需要，slave 在任何时候都可以发起全量同步。redis 策略是，无论如何，首先会尝试进行增量同步，如不成功，要求从机进行全量同步。2、slave在同步master数据时候如果slave丢失连接不用怕，slave在重新连接之后丢失重补。
 
-3、一般通过主从来实现读写分离，但是如果master挂掉后如何保证Redis的 HA呢？引入Sentinel进行master的选择。
+3、一般通过主从来实现读写分离，但是如果master挂掉后如何保证Redis的 HA呢？引入==Sentinel进行master==的选择。
 
 ### 7.2、高可用之哨兵模式
 
@@ -688,13 +741,13 @@ Redis增量复制是指Slave初始化后开始正常工作时master发生的写�
 
 Redis-sentinel  本身是一个**独立**运行的进程，一般sentinel集群 节点数至少三个且奇数个，它能监控多个master-slave集群，sentinel节点发现master宕机后能进行自动切换。Sentinel可以监视任意多个主服务器以及主服务器属下的从服务器，并在被监视的主服务器下线时，**自动执行故障转移操作**。这里需注意sentinel也有single-point-of-failure问题。大致罗列下哨兵用途：
 
-集群监控：循环监控master跟slave节点。
+==集群监控==：循环监控master跟slave节点。
 
-消息通知：当它发现有redis实例有故障的话，就会发送消息给管理员 
+==消息通知==：当它发现有redis实例有故障的话，就会发送消息给管理员 
 
-故障转移：这里分为主观下线(单独一个哨兵发现master故障了)。客观下线(多个哨兵进行抉择发现达到quorum数时候开始进行切换)。
+==故障转移==：这里分为主观下线(单独一个哨兵发现master故障了)。客观下线(多个哨兵进行抉择发现达到quorum数时候开始进行切换)。
 
-配置中心：如果发生了故障转移，它会通知将master的新地址写在配置中心告诉客户端。
+==配置中心==：如果发生了故障转移，它会通知将master的新地址写在配置中心告诉客户端。
 
 ### 7.3、Redis Cluster
 
@@ -716,7 +769,7 @@ RedisCluster是Redis的分布式解决方案，在3.0版本后推出的方案，
 
 RedisCluster采用了虚拟槽分区方式，具题的实现细节如下：
 
-1、采用去**中心化**的思想，它使用**虚拟槽solt分区**覆盖到所有节点上，取数据一样的流程，节点之间使用轻量协议通信**Gossip**来减少带宽占用所以性能很高，
+1、采用去**中心化**的思想，它使用**虚拟槽solt分区**覆盖到所有节点上，取数据一样的流程，节点之间使用==轻量协议通信**Gossip**==来减少带宽占用所以性能很高，
 
 2、自动实现**负载均衡与高可用**，自动实现**failover**并且支持**动态扩展**，官方已经玩到可以1000个节点 实现的复杂度低。
 
@@ -778,13 +831,13 @@ RedisCluster采用了虚拟槽分区方式，具题的实现细节如下：
 
 ## 9、常见知识点
 
-字符串模糊查询时用Keys可能导致线程阻塞，尽量用scan指令进行无阻塞的取出数据然后去重下即可。
+==字符串模糊查询==时用==Keys可能导致线程阻塞==，尽量==用scan指令进行无阻塞的==取出数据然后去重下即可。
 
 多个操作的情况下记得用pipeLine把所有的命令一次发过去，避免频繁的发送、接收带来的网络开销，提升性能。
 
 bigkeys可以扫描redis中的大key，底层是使用scan命令去遍历所有的键，对每个键根据其类型执行STRLEN、LLEN、SCARD、HLEN、ZCARD这些命令获取其长度或者元素个数。缺陷是线上试用并且个数多不一定空间大，
 
-线上应用记得开启Redis慢查询日志哦，基本思路跟MySQL类似。
+线上应用记得==开启Redis慢查询日志==哦，基本思路跟MySQL类似。
 
 Redis中因为内存分配策略跟增删数据是会导致内存碎片，你可以重启服务也可以执行activedefrag yes进行内存重新整理来解决此问题。
 
@@ -796,11 +849,30 @@ Redis中因为内存分配策略跟增删数据是会导致内存碎片，你可
 
 3、一般来说，mem_fragmentation_ratio的数值在1 ~ 1.5之间是比较健康的。
 
-10、End
+## 10、常见命令
 
-关于Redis先吹逼这么多(本来想写秒杀的，怕写太长，估计能看到这就算是认真阅读者了)，如果你感觉没看够那得价钱。
+### 1. MULTI
 
-![img](https:////upload-images.jianshu.io/upload_images/24781613-228ef23bf97dab45?imageMogr2/auto-orient/strip|imageView2/2/w/358/format/webp)
+用于标记事务块的开始。Redis会将后续的命令逐个放入队列中，然后才能使用EXEC命令原子化地执行这个命令序列。
 
+### 2. EXEC
 
+在一个事务中执行所有先前放入队列的命令，然后恢复正常的连接状态。
 
+当使用WATCH命令时，只有当受监控的键没有被修改时，EXEC命令才会执行事务中的命令，这种方式利用了检查再设置（CAS）的机制。
+
+### 3. DISCARD
+
+清除所有先前在一个事务中放入队列的命令，然后恢复正常的连接状态。
+
+如果使用了WATCH命令，那么DISCARD命令就会将当前连接监控的所有键取消监控。
+
+### 4. WATCH
+
+当某个事务需要按条件执行时，就要使用这个命令将给定的键设置为受监控的。
+
+### 5. UNWATCH
+
+清除所有先前为一个事务监控的键。
+
+如果你调用了EXEC或DISCARD命令，那么就不需要手动调用UNWATCH命令。
